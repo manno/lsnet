@@ -12,22 +12,45 @@ import (
 const version = "0.1.0"
 
 var (
-	showAll         = flag.Bool("a", false, "show all interfaces including DOWN")
-	allNamespaces   = flag.Bool("N", false, "show interfaces from all network namespaces")
-	outputCols      = flag.String("o", "", "output columns (comma-separated)")
-	listColumns     = flag.Bool("list-columns", false, "list all available columns")
-	showAllIPs      = flag.Bool("all-ips", false, "show all IP addresses (not just primary)")
-	directionDown   = flag.Bool("d", false, "tree direction: logical devices down")
-	directionUp     = flag.Bool("u", false, "tree direction: physical devices up (default)")
-	listFormat      = flag.Bool("l", false, "list format (no tree)")
-	jsonOutput      = flag.Bool("J", false, "JSON output")
-	noHeadings      = flag.Bool("n", false, "don't print column headers")
-	excludeTypes    = flag.String("x", "", "exclude interface types (comma-separated)")
-	filterTypes     = flag.String("t", "", "show only specified types (comma-separated)")
-	showVersion     = flag.Bool("v", false, "show version")
+	showAll       = flag.Bool("a", false, "show all interfaces including DOWN")
+	allNamespaces = flag.Bool("N", false, "show interfaces from all network namespaces")
+	outputCols    = flag.String("o", "", "output columns (comma-separated)")
+	listColumns   = flag.Bool("list-columns", false, "list all available columns")
+	directionDown = flag.Bool("d", false, "tree direction: logical devices down")
+	directionUp   = flag.Bool("u", false, "tree direction: physical devices up (default)")
+	listFormat    = flag.Bool("l", false, "list format (no tree)")
+	jsonOutput    = flag.Bool("J", false, "JSON output")
+	noHeadings    = flag.Bool("n", false, "don't print column headers")
+	excludeTypes  = flag.String("x", "", "exclude interface types (comma-separated)")
+	filterTypes   = flag.String("t", "", "show only specified types (comma-separated)")
+	showVersion   = flag.Bool("v", false, "show version")
 )
 
+// preprocessArgs handles -o+COLUMNS syntax by converting it to -o +COLUMNS
+func preprocessArgs() {
+	for i, arg := range os.Args {
+		// Handle -o+COLUMNS (no space)
+		if strings.HasPrefix(arg, "-o+") {
+			cols := strings.TrimPrefix(arg, "-o+")
+			os.Args[i] = "-o"
+			// Insert the +COLUMNS as next argument
+			os.Args = append(os.Args[:i+1], append([]string{"+" + cols}, os.Args[i+1:]...)...)
+			return
+		}
+		// Handle --output+COLUMNS (no space)
+		if strings.HasPrefix(arg, "--output+") {
+			cols := strings.TrimPrefix(arg, "--output+")
+			os.Args[i] = "-o"
+			os.Args = append(os.Args[:i+1], append([]string{"+" + cols}, os.Args[i+1:]...)...)
+			return
+		}
+	}
+}
+
 func main() {
+	// Preprocess args to support -o+COLUMNS syntax (like lsblk)
+	preprocessArgs()
+
 	flag.Usage = usage
 	flag.Parse()
 
@@ -63,7 +86,6 @@ func main() {
 	opts := &internal.Options{
 		ShowAll:       *showAll,
 		AllNamespaces: *allNamespaces,
-		ShowAllIPs:    *showAllIPs,
 		DirectionDown: *directionDown,
 		Columns:       columns,
 		ListFormat:    *listFormat,
@@ -89,7 +111,6 @@ Options:
   -N, --all-namespaces   show interfaces from all network namespaces
   -o, --output <list>    output columns (comma-separated, or +COL to append)
   --list-columns         list all available columns
-  --all-ips              show all IP addresses (not just primary)
   -d                     tree direction: logical devices down
   -u                     tree direction: physical devices up (default)
   -l, --list             list format (no tree)
@@ -107,7 +128,8 @@ Examples:
   netree -N                   # show all namespaces
   netree -t bridge,veth       # show only bridges and veth interfaces
 
-Default columns: NAME,TYPE,STATE,IP
+Default columns: NAME,TYPE,STATE
+Note: IP addresses are shown as child nodes in the tree
 `)
 }
 

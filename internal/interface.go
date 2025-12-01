@@ -18,6 +18,8 @@ type Interface struct {
 	IPs        []net.IP
 	IPv4Addrs  []net.IP
 	IPv6Addrs  []net.IP
+	IPv4Nets   []*net.IPNet // IPv4 addresses with CIDR
+	IPv6Nets   []*net.IPNet // IPv6 addresses with CIDR
 	MAC        net.HardwareAddr
 	MTU        int
 	Master     string
@@ -42,7 +44,6 @@ type Interface struct {
 type Options struct {
 	ShowAll       bool
 	AllNamespaces bool
-	ShowAllIPs    bool
 	DirectionDown bool
 	Columns       []string
 	ListFormat    bool
@@ -107,8 +108,10 @@ func DiscoverInterfaces(opts *Options) ([]*Interface, error) {
 				iface.IPs = append(iface.IPs, ip)
 				if ip.To4() != nil {
 					iface.IPv4Addrs = append(iface.IPv4Addrs, ip)
+					iface.IPv4Nets = append(iface.IPv4Nets, addr.IPNet)
 				} else {
 					iface.IPv6Addrs = append(iface.IPv6Addrs, ip)
+					iface.IPv6Nets = append(iface.IPv6Nets, addr.IPNet)
 				}
 			}
 		}

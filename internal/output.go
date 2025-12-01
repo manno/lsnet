@@ -23,7 +23,7 @@ func OutputTree(roots []*Interface, opts *Options) error {
 
 	// Print tree
 	for _, root := range roots {
-		printInterface(root, "", true, cols, opts)
+		printInterface(root, "", "", true, cols, opts)
 	}
 
 	return nil
@@ -64,37 +64,40 @@ func printHeaders(cols []string) {
 }
 
 // printInterface prints an interface and its children in tree format
-func printInterface(iface *Interface, prefix string, isLast bool, cols []string, opts *Options) {
-	// Print this interface
-	printInterfaceRow(iface, prefix, cols, opts)
+func printInterface(iface *Interface, indent string, connector string, isLast bool, cols []string, opts *Options) {
+	// Print this interface with connector
+	printInterfaceRow(iface, indent+connector, cols, opts)
 
 	// Print children
 	childCount := len(iface.Children)
+
+	// Calculate indent for children (extends current indent)
+	var childIndent string
+	if connector == "" {
+		// Root level, no indent
+		childIndent = ""
+	} else {
+		// Add spacing based on whether this is the last child
+		if isLast {
+			childIndent = indent + "  "
+		} else {
+			childIndent = indent + "│ "
+		}
+	}
+
+	// Print each child
 	for i, child := range iface.Children {
 		isLastChild := i == childCount-1
 
-		// Build prefix for child
-		var childPrefix string
-		if prefix == "" {
-			if isLastChild {
-				childPrefix = "└─"
-			} else {
-				childPrefix = "├─"
-			}
+		// Choose connector for this child
+		var childConnector string
+		if isLastChild {
+			childConnector = "└─"
 		} else {
-			if isLast {
-				childPrefix = prefix + "   "
-			} else {
-				childPrefix = prefix + "│  "
-			}
-			if isLastChild {
-				childPrefix += "└─"
-			} else {
-				childPrefix += "├─"
-			}
+			childConnector = "├─"
 		}
 
-		printInterface(child, childPrefix, isLastChild, cols, opts)
+		printInterface(child, childIndent, childConnector, isLastChild, cols, opts)
 	}
 }
 
@@ -132,13 +135,26 @@ func getColumnValue(iface *Interface, col string, opts *Options) string {
 		return iface.State
 
 	case "IP":
-		return formatIPs(iface.IPs, opts.ShowAllIPs)
+		// Show count of IP addresses
+		total := len(iface.IPv4Addrs) + len(iface.IPv6Addrs)
+		if total > 0 {
+			return fmt.Sprintf("%d", total)
+		}
+		return "-"
 
 	case "IPV4":
-		return formatIPList(iface.IPv4Addrs, opts.ShowAllIPs)
+		// Show count of IPv4 addresses
+		if len(iface.IPv4Addrs) > 0 {
+			return fmt.Sprintf("%d", len(iface.IPv4Addrs))
+		}
+		return "-"
 
 	case "IPV6":
-		return formatIPList(iface.IPv6Addrs, opts.ShowAllIPs)
+		// Show count of IPv6 addresses
+		if len(iface.IPv6Addrs) > 0 {
+			return fmt.Sprintf("%d", len(iface.IPv6Addrs))
+		}
+		return "-"
 
 	case "MAC":
 		if iface.MAC != nil {

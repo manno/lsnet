@@ -14,16 +14,16 @@ type Column struct {
 
 var (
 	// DefaultColumns are the columns shown by default
-	DefaultColumns = []string{"NAME", "TYPE", "STATE", "IP"}
+	DefaultColumns = []string{"NAME", "TYPE", "STATE"}
 
 	// AvailableColumns defines all columns that can be displayed
 	AvailableColumns = map[string]Column{
-		"NAME":      {"NAME", "Device name", 15},
-		"TYPE":      {"TYPE", "Interface type (ether, bridge, vlan, veth, etc.)", 10},
+		"NAME":      {"NAME", "Device/IP name", 20},
+		"TYPE":      {"TYPE", "Type (ether, bridge, vlan, inet, inet6, etc.)", 10},
 		"STATE":     {"STATE", "Interface state (UP/DOWN)", 6},
-		"IP":        {"IP", "IP address(es) - shows primary with count if multiple", 16},
-		"IPV4":      {"IPV4", "IPv4 addresses only", 16},
-		"IPV6":      {"IPV6", "IPv6 addresses only", 20},
+		"IP":        {"IP", "IP address summary (count)", 16},
+		"IPV4":      {"IPV4", "IPv4 address count", 8},
+		"IPV6":      {"IPV6", "IPv6 address count", 8},
 		"MAC":       {"MAC", "MAC address", 17},
 		"MTU":       {"MTU", "Maximum transmission unit", 6},
 		"DRIVER":    {"DRIVER", "Kernel module/driver name", 12},

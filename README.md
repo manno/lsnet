@@ -5,8 +5,8 @@ A command-line tool to display network devices and their relationships in a tree
 ## Features
 
 - **Tree view** of network interfaces showing hierarchies (bridges, VLANs, veth pairs, etc.)
+- **IP addresses as tree nodes** with CIDR notation
 - **Flexible column display** like `lsblk` with `-o` flag
-- **Multiple IP addresses** support with smart display
 - **Network namespace** aware (future enhancement)
 - **Driver and hardware** information from sysfs
 - **JSON output** for scripting
@@ -33,10 +33,7 @@ netree -a
 netree -o NAME,TYPE,DRIVER,IP
 
 # Append columns to defaults
-netree -o +MAC,MTU,DRIVER
-
-# Show all IP addresses (not just primary)
-netree --all-ips
+netree -o+MAC,MTU,DRIVER
 
 # List all available columns
 netree --list-columns
@@ -48,26 +45,32 @@ netree -J
 ### Example Output
 
 ```
-NAME         TYPE      STATE  IP
-eth0         ether     UP     192.168.1.10
-├─vlan100    vlan      UP     10.0.1.1
-└─vlan200    vlan      UP     10.0.2.1
-br0          bridge    UP     172.16.0.1 (+2)
-├─eth1       ether     UP     -
-└─veth0      veth      UP     -
-wlan0        ether     UP     192.168.0.50
+NAME                 TYPE       STATE
+eth0                 ether      UP
+├─192.168.1.10/24      inet
+├─vlan100            vlan       UP
+│ └─10.0.1.1/24        inet
+└─vlan200            vlan       UP
+  └─10.0.2.1/24        inet
+br0                  bridge     UP
+├─172.16.0.1/16        inet
+├─fe80::1/64           inet6
+├─eth1               ether      UP
+└─veth0              veth       UP
+wlan0                ether      UP
+└─192.168.0.50/24      inet
 ```
 
 ## Available Columns
 
 | Column | Description |
 |--------|-------------|
-| NAME | Device name |
-| TYPE | Interface type (ether, bridge, vlan, veth, bond, etc.) |
-| STATE | Interface state (UP/DOWN) |
-| IP | IP address(es) - shows primary with count if multiple |
-| IPV4 | IPv4 addresses only |
-| IPV6 | IPv6 addresses only |
+| NAME | Device/IP name (includes CIDR for IP addresses) |
+| TYPE | Type (ether, bridge, vlan, inet, inet6, etc.) |
+| STATE | Interface state (UP/DOWN, empty for IP addresses) |
+| IP | IP address count (total IPv4 + IPv6) |
+| IPV4 | IPv4 address count |
+| IPV6 | IPv6 address count |
 | MAC | MAC address |
 | MTU | Maximum transmission unit |
 | DRIVER | Kernel module/driver name |
@@ -79,7 +82,9 @@ wlan0        ether     UP     192.168.0.50
 | RX | Received bytes/packets |
 | TX | Transmitted bytes/packets |
 
-Default columns: `NAME,TYPE,STATE,IP`
+Default columns: `NAME,TYPE,STATE`
+
+**Note:** IP addresses are displayed as child nodes in the tree with CIDR notation, not as columns.
 
 ## Command-Line Options
 
@@ -88,7 +93,6 @@ Default columns: `NAME,TYPE,STATE,IP`
   -N, --all-namespaces   show interfaces from all network namespaces
   -o, --output <list>    output columns (comma-separated, or +COL to append)
   --list-columns         list all available columns
-  --all-ips              show all IP addresses (not just primary)
   -d                     tree direction: logical devices down
   -u                     tree direction: physical devices up (default)
   -l, --list             list format (no tree)

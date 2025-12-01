@@ -43,6 +43,11 @@ func BuildTree(interfaces []*Interface, opts *Options) []*Interface {
 		}
 	}
 
+	// Add IP addresses as child nodes for all interfaces
+	for _, iface := range interfaces {
+		addIPNodes(iface)
+	}
+
 	// Sort roots and children for consistent output
 	sortInterfaces(roots, opts)
 	for _, iface := range interfaces {
@@ -52,6 +57,28 @@ func BuildTree(interfaces []*Interface, opts *Options) []*Interface {
 	}
 
 	return roots
+}
+
+// addIPNodes adds IP addresses as child nodes of an interface
+func addIPNodes(iface *Interface) {
+	// Add IPv4 addresses first, then IPv6
+	for _, ipnet := range iface.IPv4Nets {
+		ipNode := &Interface{
+			Name:  ipnet.String(), // This includes CIDR notation
+			Type:  "inet",
+			State: "",
+		}
+		iface.Children = append(iface.Children, ipNode)
+	}
+
+	for _, ipnet := range iface.IPv6Nets {
+		ipNode := &Interface{
+			Name:  ipnet.String(), // This includes CIDR notation
+			Type:  "inet6",
+			State: "",
+		}
+		iface.Children = append(iface.Children, ipNode)
+	}
 }
 
 // sortInterfaces sorts interfaces by physical-first, then by name
@@ -89,6 +116,8 @@ func getTypePriority(iftype string) int {
 		"tap":       8,
 		"dummy":     9,
 		"wireguard": 10,
+		"inet":      100, // IP addresses come after interfaces
+		"inet6":     101,
 		"unknown":   99,
 	}
 
