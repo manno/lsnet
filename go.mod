@@ -1,4 +1,4 @@
-module github.com/manno/netree
+module github.com/manno/lsnet
 
 go 1.25.4
 

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/manno/netree/internal"
+	"github.com/manno/lsnet/internal"
 )
 
 const version = "0.1.0"
@@ -55,7 +55,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("netree version %s\n", version)
+		fmt.Printf("lsnet version %s\n", version)
 		os.Exit(0)
 	}
 
@@ -102,9 +102,9 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `netree - Network Device Tree Viewer
+	fmt.Fprintf(os.Stderr, `lsnet - Network Device Tree Viewer
 
-Usage: netree [options]
+Usage: lsnet [options]
 
 Options:
   -a, --all              show all interfaces including DOWN
@@ -121,12 +121,12 @@ Options:
   -v, --version          show version
 
 Examples:
-  netree                      # show active interfaces in current namespace
-  netree -a                   # show all interfaces (including DOWN)
-  netree -o NAME,TYPE,DRIVER  # custom columns
-  netree -o+MAC,MTU           # append columns to defaults
-  netree -N                   # show all namespaces
-  netree -t bridge,veth       # show only bridges and veth interfaces
+  lsnet                      # show active interfaces in current namespace
+  lsnet -a                   # show all interfaces (including DOWN)
+  lsnet -o NAME,TYPE,DRIVER  # custom columns
+  lsnet -o+MAC,MTU           # append columns to defaults
+  lsnet -N                   # show all namespaces
+  lsnet -t bridge,veth       # show only bridges and veth interfaces
 
 Default columns: NAME,TYPE,STATE
 Note: IP addresses are shown as child nodes in the tree

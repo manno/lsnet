@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// Run is the main entry point for the netree application
+// Run is the main entry point for the application
 func Run(opts *Options) error {
 	// Normalize columns
 	opts.Columns = NormalizeColumns(opts.Columns)

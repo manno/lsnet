@@ -1,4 +1,4 @@
-# netree - Network Device Tree Viewer
+# lsnet - Network Device Tree Viewer
 
 A command-line tool to display network devices and their relationships in a tree format, similar to `lsblk` for block devices.
 
@@ -14,8 +14,8 @@ A command-line tool to display network devices and their relationships in a tree
 ## Installation
 
 ```bash
-go build -o netree
-sudo install netree /usr/local/bin/
+go build -o lsnet
+sudo install lsnet /usr/local/bin/
 ```
 
 ## Usage
@@ -24,22 +24,22 @@ sudo install netree /usr/local/bin/
 
 ```bash
 # Show active interfaces with default columns
-netree
+lsnet
 
 # Show all interfaces including DOWN
-netree -a
+lsnet -a
 
 # Custom columns
-netree -o NAME,TYPE,DRIVER,IP
+lsnet -o NAME,TYPE,DRIVER,IP
 
 # Append columns to defaults
-netree -o+MAC,MTU,DRIVER
+lsnet -o+MAC,MTU,DRIVER
 
 # List all available columns
-netree --list-columns
+lsnet --list-columns
 
 # JSON output for scripting
-netree -J
+lsnet -J
 ```
 
 ### Example Output
