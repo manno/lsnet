@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"sort"
 )
 
@@ -43,9 +44,16 @@ func BuildTree(interfaces []*Interface, opts *Options) []*Interface {
 		}
 	}
 
+	// Discover listening ports
+	listeningPorts, err := DiscoverListeningPorts()
+	if err != nil {
+		// If we can't read listening ports, continue without them
+		listeningPorts = []ListeningPort{}
+	}
+
 	// Add IP addresses as child nodes for all interfaces
 	for _, iface := range interfaces {
-		addIPNodes(iface)
+		addIPNodes(iface, listeningPorts)
 	}
 
 	// Sort roots and children for consistent output
@@ -60,25 +68,60 @@ func BuildTree(interfaces []*Interface, opts *Options) []*Interface {
 }
 
 // addIPNodes adds IP addresses as child nodes of an interface
-func addIPNodes(iface *Interface) {
+func addIPNodes(iface *Interface, listeningPorts []ListeningPort) {
 	// Add IPv4 addresses first, then IPv6
 	for _, ipnet := range iface.IPv4Nets {
 		ipNode := &Interface{
-			Name:  ipnet.String(), // This includes CIDR notation
-			Type:  "inet",
-			State: "",
+			Name:     ipnet.String(), // This includes CIDR notation
+			Type:     "inet",
+			State:    "",
+			IsIPNode: true,
 		}
+
+		// Find listening ports for this IP
+		ports := GetPortsForIP(listeningPorts, ipnet.IP)
+
+		// Add port nodes as children of the IP node
+		for _, port := range ports {
+			portNode := &Interface{
+				Name:  formatPort(port),
+				Type:  port.Protocol,
+				State: "",
+			}
+			ipNode.Children = append(ipNode.Children, portNode)
+		}
+
 		iface.Children = append(iface.Children, ipNode)
 	}
 
 	for _, ipnet := range iface.IPv6Nets {
 		ipNode := &Interface{
-			Name:  ipnet.String(), // This includes CIDR notation
-			Type:  "inet6",
-			State: "",
+			Name:     ipnet.String(), // This includes CIDR notation
+			Type:     "inet6",
+			State:    "",
+			IsIPNode: true,
 		}
+
+		// Find listening ports for this IP
+		ports := GetPortsForIP(listeningPorts, ipnet.IP)
+
+		// Add port nodes as children of the IP node
+		for _, port := range ports {
+			portNode := &Interface{
+				Name:  formatPort(port),
+				Type:  port.Protocol,
+				State: "",
+			}
+			ipNode.Children = append(ipNode.Children, portNode)
+		}
+
 		iface.Children = append(iface.Children, ipNode)
 	}
+}
+
+// formatPort formats a listening port for display
+func formatPort(port ListeningPort) string {
+	return fmt.Sprintf("%d", port.Port)
 }
 
 // sortInterfaces sorts interfaces by physical-first, then by name
@@ -118,6 +161,8 @@ func getTypePriority(iftype string) int {
 		"wireguard": 10,
 		"inet":      100, // IP addresses come after interfaces
 		"inet6":     101,
+		"tcp":       200, // Ports come after IP addresses
+		"udp":       201,
 		"unknown":   99,
 	}
 

@@ -6,6 +6,7 @@ A command-line tool to display network devices and their relationships in a tree
 
 - **Tree view** of network interfaces showing hierarchies (bridges, VLANs, veth pairs, etc.)
 - **IP addresses as tree nodes** with CIDR notation
+- **Listening ports** shown under each IP address (TCP and UDP)
 - **Flexible column display** like `lsblk` with `-o` flag
 - **Network namespace** aware (future enhancement)
 - **Driver and hardware** information from sysfs
@@ -48,12 +49,17 @@ lsnet -J
 NAME                 TYPE       STATE
 eth0                 ether      UP
 ├─192.168.1.10/24      inet
+│ ├─22                 tcp
+│ ├─80                 tcp
+│ └─443                tcp
 ├─vlan100            vlan       UP
 │ └─10.0.1.1/24        inet
+│   └─8080             tcp
 └─vlan200            vlan       UP
   └─10.0.2.1/24        inet
 br0                  bridge     UP
 ├─172.16.0.1/16        inet
+│ └─53                 udp
 ├─fe80::1/64           inet6
 ├─eth1               ether      UP
 └─veth0              veth       UP
@@ -84,7 +90,7 @@ wlan0                ether      UP
 
 Default columns: `NAME,TYPE,STATE`
 
-**Note:** IP addresses are displayed as child nodes in the tree with CIDR notation, not as columns.
+**Note:** IP addresses are displayed as child nodes in the tree with CIDR notation, not as columns. Listening ports (TCP and UDP) are shown as child nodes under their corresponding IP addresses. Ports bound to `0.0.0.0` or `::` (wildcard addresses) will appear under all interface IP addresses.
 
 ## Command-Line Options
 
