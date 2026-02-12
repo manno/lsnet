@@ -166,12 +166,13 @@ func parseSocketAddr(addr string) (net.IP, uint16, error) {
 }
 
 // GetPortsForIP returns all listening ports for a specific IP address
+// Note: Wildcard addresses (0.0.0.0 or ::) are excluded
 func GetPortsForIP(ports []ListeningPort, ip net.IP) []ListeningPort {
 	var result []ListeningPort
 
 	for _, p := range ports {
-		// Check if the port is bound to this specific IP or to 0.0.0.0/::
-		if p.Address.Equal(ip) || isWildcardAddr(p.Address) {
+		// Only include ports bound to this specific IP (not wildcards)
+		if p.Address.Equal(ip) {
 			result = append(result, p)
 		}
 	}

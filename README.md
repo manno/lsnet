@@ -90,7 +90,7 @@ wlan0                ether      UP
 
 Default columns: `NAME,TYPE,STATE`
 
-**Note:** IP addresses are displayed as child nodes in the tree with CIDR notation, not as columns. Listening ports (TCP and UDP) are shown as child nodes under their corresponding IP addresses. Ports bound to `0.0.0.0` or `::` (wildcard addresses) will appear under all interface IP addresses.
+**Note:** IP addresses are displayed as child nodes in the tree with CIDR notation, not as columns. Listening ports (TCP and UDP) are shown as child nodes under their corresponding IP addresses. Only ports bound to specific IP addresses are shown; wildcard addresses (`0.0.0.0` or `::`) are excluded to keep the output concise.
 
 ## Command-Line Options
 
