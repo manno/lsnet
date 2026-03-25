@@ -38,6 +38,10 @@ type Interface struct {
 	Index      int
 	LinkIndex  int
 	IsPhysical bool
+	// Ports holds listening ports for IP address nodes
+	Ports []ListeningPort
+	// IsIPNode indicates if this is an IP address node (not an interface)
+	IsIPNode bool
 }
 
 // Options holds the runtime configuration
