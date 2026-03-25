@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"unicode/utf8"
 )
 
 // OutputTree prints the interface tree
@@ -112,8 +113,6 @@ func printInterfaceRow(iface *Interface, treePrefix string, cols []string, opts 
 		// For NAME column, prepend tree prefix
 		if col == "NAME" && treePrefix != "" {
 			value = treePrefix + value
-			// Adjust width for tree characters
-			width += len(treePrefix)
 		}
 
 		values[i] = padRight(value, width)
@@ -278,12 +277,13 @@ func formatBytes(bytes uint64) string {
 	return fmt.Sprintf("%.1f%cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
-// padRight pads a string to the right
+// padRight pads a string to the right, measuring width in runes (not bytes)
 func padRight(s string, width int) string {
-	if len(s) >= width {
+	runeLen := utf8.RuneCountInString(s)
+	if runeLen >= width {
 		return s
 	}
-	return s + strings.Repeat(" ", width-len(s))
+	return s + strings.Repeat(" ", width-runeLen)
 }
 
 // outputJSON outputs interfaces as JSON
