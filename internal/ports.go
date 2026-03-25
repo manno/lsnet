@@ -85,7 +85,7 @@ func parseNetFile(filename, protocol string) ([]ListeningPort, error) {
 
 		// Field 3 is st (state)
 		// For TCP: 0A = LISTEN (10 in decimal)
-		// For UDP: 07 = CLOSE (listening state)
+		// For UDP: 07 = UNCONN (bound/listening socket)
 		state := fields[3]
 
 		// Only process listening sockets
@@ -165,14 +165,13 @@ func parseSocketAddr(addr string) (net.IP, uint16, error) {
 	return ip, uint16(portNum), nil
 }
 
-// GetPortsForIP returns all listening ports for a specific IP address
-// Note: Wildcard addresses (0.0.0.0 or ::) are excluded
+// GetPortsForIP returns all listening ports for a specific IP address.
+// Ports bound to wildcard addresses (0.0.0.0 or ::) are excluded.
 func GetPortsForIP(ports []ListeningPort, ip net.IP) []ListeningPort {
 	var result []ListeningPort
 
 	for _, p := range ports {
-		// Only include ports bound to this specific IP (not wildcards)
-		if p.Address.Equal(ip) {
+		if !isWildcardAddr(p.Address) && p.Address.Equal(ip) {
 			result = append(result, p)
 		}
 	}

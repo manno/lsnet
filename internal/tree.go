@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"os"
 	"sort"
 )
 
@@ -47,13 +48,24 @@ func BuildTree(interfaces []*Interface, opts *Options) []*Interface {
 	// Discover listening ports
 	listeningPorts, err := DiscoverListeningPorts()
 	if err != nil {
-		// If we can't read listening ports, continue without them
+		fmt.Fprintf(os.Stderr, "warning: could not discover listening ports: %v\n", err)
 		listeningPorts = []ListeningPort{}
+	}
+
+	// Pre-index ports by IP for O(1) lookups when building IP nodes.
+	// Wildcard-bound ports (0.0.0.0 / ::) are omitted from the index since
+	// they cannot be attributed to a specific IP address.
+	portsByIP := make(map[string][]ListeningPort)
+	for _, p := range listeningPorts {
+		if !isWildcardAddr(p.Address) {
+			key := p.Address.String()
+			portsByIP[key] = append(portsByIP[key], p)
+		}
 	}
 
 	// Add IP addresses as child nodes for all interfaces
 	for _, iface := range interfaces {
-		addIPNodes(iface, listeningPorts)
+		addIPNodes(iface, portsByIP)
 	}
 
 	// Sort roots and children for consistent output
@@ -68,18 +80,17 @@ func BuildTree(interfaces []*Interface, opts *Options) []*Interface {
 }
 
 // addIPNodes adds IP addresses as child nodes of an interface
-func addIPNodes(iface *Interface, listeningPorts []ListeningPort) {
+func addIPNodes(iface *Interface, portsByIP map[string][]ListeningPort) {
 	// Add IPv4 addresses first, then IPv6
 	for _, ipnet := range iface.IPv4Nets {
+		ports := portsByIP[ipnet.IP.String()]
 		ipNode := &Interface{
 			Name:     ipnet.String(), // This includes CIDR notation
 			Type:     "inet",
 			State:    "",
 			IsIPNode: true,
+			Ports:    ports,
 		}
-
-		// Find listening ports for this IP
-		ports := GetPortsForIP(listeningPorts, ipnet.IP)
 
 		// Add port nodes as children of the IP node
 		for _, port := range ports {
@@ -95,15 +106,14 @@ func addIPNodes(iface *Interface, listeningPorts []ListeningPort) {
 	}
 
 	for _, ipnet := range iface.IPv6Nets {
+		ports := portsByIP[ipnet.IP.String()]
 		ipNode := &Interface{
 			Name:     ipnet.String(), // This includes CIDR notation
 			Type:     "inet6",
 			State:    "",
 			IsIPNode: true,
+			Ports:    ports,
 		}
-
-		// Find listening ports for this IP
-		ports := GetPortsForIP(listeningPorts, ipnet.IP)
 
 		// Add port nodes as children of the IP node
 		for _, port := range ports {
