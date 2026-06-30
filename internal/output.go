@@ -54,11 +54,19 @@ func OutputList(interfaces []*Interface, opts *Options) error {
 // printHeaders prints column headers
 func printHeaders(cols []string) {
 	headers := make([]string, len(cols))
+	last := len(cols) - 1
 	for i, col := range cols {
+		var name string
+		var width int
 		if colDef, ok := AvailableColumns[col]; ok {
-			headers[i] = padRight(colDef.Name, colDef.Width)
+			name, width = colDef.Name, colDef.Width
 		} else {
-			headers[i] = padRight(col, 12)
+			name, width = col, 12
+		}
+		if i == last {
+			headers[i] = name
+		} else {
+			headers[i] = padRight(name, width)
 		}
 	}
 	fmt.Println(strings.Join(headers, " "))
@@ -105,17 +113,21 @@ func printInterface(iface *Interface, indent string, connector string, isLast bo
 // printInterfaceRow prints a single interface row
 func printInterfaceRow(iface *Interface, treePrefix string, cols []string, opts *Options) {
 	values := make([]string, len(cols))
+	last := len(cols) - 1
 
 	for i, col := range cols {
 		width := AvailableColumns[col].Width
 		value := getColumnValue(iface, col, opts)
 
-		// For NAME column, prepend tree prefix
 		if col == "NAME" && treePrefix != "" {
 			value = treePrefix + value
 		}
 
-		values[i] = padRight(value, width)
+		if i == last {
+			values[i] = value
+		} else {
+			values[i] = fitColumn(value, width)
+		}
 	}
 
 	fmt.Println(strings.Join(values, " "))
@@ -284,6 +296,15 @@ func padRight(s string, width int) string {
 		return s
 	}
 	return s + strings.Repeat(" ", width-runeLen)
+}
+
+// fitColumn pads a string to width or truncates it with … to keep columns aligned.
+func fitColumn(s string, width int) string {
+	runes := []rune(s)
+	if len(runes) <= width {
+		return s + strings.Repeat(" ", width-len(runes))
+	}
+	return string(runes[:width-1]) + "…"
 }
 
 // outputJSON outputs interfaces as JSON

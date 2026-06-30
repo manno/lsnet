@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/vishvananda/netlink"
 )
@@ -128,8 +129,9 @@ func DiscoverInterfaces(opts *Options) ([]*Interface, error) {
 			iface.TxPackets = stats.TxPackets
 		}
 
-		// Get driver and model from sysfs
+		// Get driver, model, and speed from sysfs
 		iface.Driver = getDriver(attrs.Name)
+		iface.Model = getModel(attrs.Name)
 		iface.Speed = getSpeed(attrs.Name)
 
 		// Determine if physical
@@ -207,6 +209,113 @@ func getDriver(ifname string) string {
 		return filepath.Base(target)
 	}
 	return ""
+}
+
+// getModel reads the hardware model/description from sysfs.
+// USB adapters expose readable product/manufacturer strings; PCI devices are
+// looked up in the system PCI IDs database by vendor:device ID.
+func getModel(ifname string) string {
+	devicePath := filepath.Join("/sys/class/net", ifname, "device")
+
+	// USB adapters expose human-readable product and manufacturer strings
+	if product, err := os.ReadFile(filepath.Join(devicePath, "product")); err == nil {
+		p := strings.TrimSpace(string(product))
+		if mfr, err := os.ReadFile(filepath.Join(devicePath, "manufacturer")); err == nil {
+			if m := strings.TrimSpace(string(mfr)); m != "" {
+				return m + " " + p
+			}
+		}
+		return p
+	}
+
+	// PCI devices: look up vendor/device ID in the PCI IDs database
+	vendorBytes, verr := os.ReadFile(filepath.Join(devicePath, "vendor"))
+	deviceBytes, derr := os.ReadFile(filepath.Join(devicePath, "device"))
+	if verr != nil || derr != nil {
+		return ""
+	}
+
+	vendor := strings.TrimSpace(string(vendorBytes))
+	dev := strings.TrimSpace(string(deviceBytes))
+
+	if model := lookupPCIModel(vendor, dev); model != "" {
+		return model
+	}
+
+	// Fall back to raw vendor:device hex IDs
+	v := strings.ToLower(strings.TrimPrefix(vendor, "0x"))
+	d := strings.ToLower(strings.TrimPrefix(dev, "0x"))
+	return v + ":" + d
+}
+
+var (
+	pciModelOnce  sync.Once
+	pciModelCache map[string]string
+)
+
+func lookupPCIModel(vendor, device string) string {
+	pciModelOnce.Do(func() {
+		pciModelCache = loadPCIIDs()
+	})
+	if pciModelCache == nil {
+		return ""
+	}
+	v := strings.ToLower(strings.TrimPrefix(vendor, "0x"))
+	d := strings.ToLower(strings.TrimPrefix(device, "0x"))
+	return pciModelCache[v+":"+d]
+}
+
+func loadPCIIDs() map[string]string {
+	candidates := []string{
+		"/usr/share/misc/pci.ids",
+		"/usr/share/pci.ids",
+		"/usr/share/hwdata/pci.ids",
+		"/var/lib/pciutils/pci.ids",
+	}
+	for _, path := range candidates {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		return parsePCIIDs(string(data))
+	}
+	return nil
+}
+
+// parsePCIIDs parses the pci.ids file and returns a "vendor:device" -> "description" map.
+// The file format has vendor lines (4 hex digits + name) and device lines (tab + 4 hex digits + name).
+func parsePCIIDs(data string) map[string]string {
+	result := make(map[string]string)
+	var vendorID, vendorName string
+
+	for _, line := range strings.Split(data, "\n") {
+		if len(line) == 0 || line[0] == '#' {
+			continue
+		}
+		if line[0] == '\t' {
+			if len(line) < 6 || line[1] == '\t' {
+				continue // skip subsystem lines (two tabs) and short lines
+			}
+			// Device line: "\tDDDD  Device Name"
+			devID := strings.ToLower(strings.TrimSpace(line[1:5]))
+			devName := strings.TrimSpace(line[5:])
+			if vendorID != "" {
+				result[vendorID+":"+devID] = vendorName + " " + devName
+			}
+		} else {
+			// Vendor line: "VVVV  Vendor Name" — skip non-hex-digit start (e.g. class section)
+			if len(line) < 6 || !isLowerHexDigit(line[0]) {
+				continue
+			}
+			vendorID = strings.ToLower(line[:4])
+			vendorName = strings.TrimSpace(line[4:])
+		}
+	}
+	return result
+}
+
+func isLowerHexDigit(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
 }
 
 // getSpeed reads the link speed from sysfs

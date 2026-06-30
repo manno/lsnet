@@ -27,7 +27,7 @@ var (
 		"MAC":       {"MAC", "MAC address", 17},
 		"MTU":       {"MTU", "Maximum transmission unit", 6},
 		"DRIVER":    {"DRIVER", "Kernel module/driver name", 12},
-		"MODEL":     {"MODEL", "Device model/description", 20},
+		"MODEL":     {"MODEL", "Device model/description", 35},
 		"SPEED":     {"SPEED", "Link speed (e.g., 1000Mb/s)", 10},
 		"MASTER":    {"MASTER", "Master device name (for bridge/bond members)", 12},
 		"PEER":      {"PEER", "veth peer name (with namespace if different)", 20},
